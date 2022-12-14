@@ -1,7 +1,8 @@
+import inspect
+
 import peewee as pw
 import collections
 from playhouse.reflection import Column as VanilaColumn
-
 
 INDENT = '    '
 NEWLINE = '\n' + INDENT
@@ -41,6 +42,17 @@ FIELD_TO_PARAMS = {
     pw.DateTimeField: dtf_to_params,
 }
 
+CONSTRAINTS_TO_PARAMS = lambda cs: {'constraints': '[' + ', '.join('SQL("%s")' % c.sql for c in cs) + ']'}
+
+
+def DEFAULT_TO_PARAMS(d):
+    val = ''
+    if type(d) == str:
+        val = f'"{d}"'
+    else:
+        val = d
+    return {'default': val}
+
 
 class Column(VanilaColumn):
 
@@ -51,7 +63,10 @@ class Column(VanilaColumn):
             unique=field.unique, extra_parameters={}
         )
         if field.default is not None and not callable(field.default):
-            self.default = repr(field.default)
+            self.extra_parameters.update(DEFAULT_TO_PARAMS(field.default))
+
+        if field.constraints is not None:
+            self.extra_parameters.update(CONSTRAINTS_TO_PARAMS(field.constraints))
 
         if self.field_class in FIELD_TO_PARAMS:
             self.extra_parameters.update(FIELD_TO_PARAMS[self.field_class](field))
@@ -246,7 +261,7 @@ def change_not_null(Model, name, null):
 
 def add_index(Model, name, unique):
     operation = 'add_index'
-    return "migrator.%s('%s', %s, unique=%s)" %\
+    return "migrator.%s('%s', %s, unique=%s)" % \
         (operation, Model._meta.table_name, repr(name), unique)
 
 
