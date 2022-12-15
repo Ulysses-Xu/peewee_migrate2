@@ -44,14 +44,7 @@ FIELD_TO_PARAMS = {
 
 CONSTRAINTS_TO_PARAMS = lambda cs: {'constraints': '[' + ', '.join('SQL("%s")' % c.sql for c in cs) + ']'}
 
-
-def DEFAULT_TO_PARAMS(d):
-    val = ''
-    if type(d) == str:
-        val = f'"{d}"'
-    else:
-        val = d
-    return {'default': val}
+DEFAULT_TO_PARAMS = lambda d: {'default': f'"{d}"' if type(d) == str else d}
 
 
 class Column(VanilaColumn):
